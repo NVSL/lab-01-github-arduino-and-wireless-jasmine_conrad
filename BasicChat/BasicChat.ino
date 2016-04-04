@@ -12,7 +12,11 @@
   Data into the RF radio will go out the MCU's UART0.
 */
 
+#define FIVE_SECONDS 5000000
+#define DATA 'c'
 #include "RadioFunctions.h"
+
+unsigned int counter;
 
 void setup()
 {
@@ -22,17 +26,42 @@ void setup()
   
   // Send a message to other RF boards on this channel
   rfPrint("ATmega128RFA1 Dev Board Online!\r\n");
+  
+  counter = 0;
 }
 
 void loop()
-{
-  
+{ 
   if (Serial.available())  // If serial comes in...
   {
-    rfWrite(Serial.read()); // ...send it out the radio.
+    char tmp = Serial.read();
+    
+    // Check received bytes
+    if(tmp == 'r'){
+      Serial.print("The number of bytes received: ");
+      Serial.println(counter);
+      counter = 0;
+    }
+    
+    // Transmit bytes for 5 seconds
+    else if(tmp == 't'){
+      long time_end = micros()+FIVE_SECONDS;
+      long time_cur = micros();
+      while(time_cur < time_end){
+        rfWrite(DATA);
+        counter++;
+        time_cur = micros();
+      }
+      Serial.print("The number of bytes sent: ");
+      Serial.println(counter);
+      counter = 0;
+    }
   }
+
   if (rfAvailable())  // If data receievd on radio...
   {
-    Serial.print(rfRead());  // ... send it out serial.
+    // Counting successfully received bytes
+    if(DATA == rfRead())
+      counter++;
   }
 }
